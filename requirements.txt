@@ -1,0 +1,11 @@
+# Dépendances Python des convertisseurs PDF vers EPUB.
+PyMuPDF==2.0
+EbookLib==0.20
+
+# Dépendances système pour l'OCR (à installer séparément de pip) :
+# sudo apt install tesseract-ocr tesseract-ocr-fra tesseract-ocr-eng
+#
+# Facultatif : installer ocrmypdf si convert_pdf_avec_couche_texte.py doit aussi
+# produire une couche OCR pour les PDF scannés. Cette commande n'est pas lancée
+# par pip via ce fichier :
+# ocrmypdf

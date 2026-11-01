@@ -1,0 +1,10 @@
+# Documents personnels et fichiers générés localement
+/pdf/
+/tests/
+/venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.parts/
+*.qa/
+*.qa.json
