@@ -4,29 +4,31 @@
 
 ### Flux actuellement prévu
 
-- `moulinette_pdf_scan_vers_epub.py` : PDF scannés ou sans couche texte. Analyse
-  les pages, découpe le travail en lots, puis fusionne les EPUB. Utiliser
-  `--images all` pour conserver chaque scan avant le texte correspondant.
-- `convert_pdf_avec_couche_texte.py` : PDF avec couche texte, comme Le Nouvel
-  Observateur. Il traite les PDF du dossier courant en lot ; l'utiliser depuis
-  un dossier qui ne contient que les PDF voulus.
+- `convert_pdf_avec_couche_texte.py` : point d'entrée courant. Avec un chemin
+  PDF en argument, il convertit ce fichier seul ; sans argument, il traite les
+  PDF du dossier courant. Il détecte la couche texte et choisit le convertisseur
+  adapté.
+- `python/moulinette_pdf_scan_vers_epub.py` : moteur spécialisé appelé pour les
+  PDF scannés. Il analyse les pages, découpe le travail en lots et les fusionne
+  avec tous les scans avant leur transcription. Le sommaire expose chaque page
+  PDF et conserve les titres reconnus comme sous-entrées.
 
 ### Fichiers liés à la v3
 
 La moulinette scan importe des fonctions de
-`moulinette_pdf_vers_epub_analyse.py`, qui importe à son tour
-`moulinette_pdf_vers_epub_support.py`. Garde ces deux modules avec
-`moulinette_pdf_scan_vers_epub.py` ; ce sont des dépendances internes, pas des
-commandes à lancer pour les conversions courantes.
+`python/moulinette_pdf_vers_epub_analyse.py`, qui importe à son tour
+`python/moulinette_pdf_vers_epub_support.py`. `python/optimiser_epub_kindle.py`
+est un outil optionnel pour compresser un EPUB déjà créé. Garde le dossier
+`python/` avec le convertisseur à la racine ; ces fichiers ne sont pas des
+commandes à lancer dans le flux automatique.
 
 Autres scripts présents :
 
 - `archive_convert_nouvelobs.py` : ancien script dédié à un numéro précis du
   Nouvel Observateur ; ne pas utiliser pour les nouveaux PDF.
-- `convert_pdf_avec_couche_texte.py` : script actif pour les PDF avec texte,
-  mais il traite tous les PDF du dossier courant.
-- `optimiser_epub_kindle.py` : compresse les scans d'un EPUB existant sans refaire
-  l'OCR.
+- `convert_pdf_avec_couche_texte.py` : script actif pour les PDF avec texte et
+  point d'entrée automatique pour les scans ; accepte un PDF en argument ou
+  traite le dossier courant sans argument.
 - `intercaler_pages_pdf.py` : ancien utilitaire de post-traitement ; la
   moulinette scan actuelle assemble déjà les pages elle-même.
 
@@ -49,8 +51,7 @@ Pour les scans, installer Tesseract et ses langues française et anglaise :
 sudo apt install tesseract-ocr tesseract-ocr-fra tesseract-ocr-eng
 ```
 
-`convert_pdf_avec_couche_texte.py` peut appeler `ocrmypdf` pour les PDF sans
-couche texte. Le vieux `convert1.py`, supprimé du dossier, n'est pas nécessaire.
+Le vieux `convert1.py`, supprimé du dossier, n'est pas nécessaire.
 `archive_convert_nouvelobs.py` est autonome et n'est pas requis par les flux
 actuels.
 
@@ -60,7 +61,7 @@ actuels.
 
 - `pdf/*.pdf` : sources originales. Ne pas supprimer le dossier `pdf/` en bloc.
 - Les EPUB finaux que tu souhaites conserver, dans le dossier courant ou `pdf/`.
-- `venv/`, `moulinette_pdf_scan_vers_epub.py` et ses deux modules internes.
+- `venv/`, `convert_pdf_avec_couche_texte.py` et le dossier `python/`.
 - `tests/` si tu veux garder les scripts et échantillons de contrôle.
 
 ### Résultats intermédiaires actuels
