@@ -31,9 +31,14 @@ OCR_DPI = 300
 LOW_CONFIDENCE = 45.0
 # Keep these layout-quality cutoffs independent of any document vocabulary.
 MIN_PAGE_WORDS = 8
-IMAGE_ONLY_MIN_WORDS = 20
-IMAGE_ONLY_MAX_MEAN_CONFIDENCE = 30.0
-IMAGE_ONLY_MIN_LOW_CONFIDENCE_RATIO = 0.45
+# A page is treated as image-only when fewer than this fraction of its
+# recognised words are legible (≥2 alphabetic characters, confidence ≥45).
+# Pages like magazine covers — mostly photos with a handful of large-font
+# tokens — score well below this threshold, while normal text pages score
+# above 50 %.  The absolute floor avoids triggering on pages with very few
+# words overall (e.g. a chapter-break illustration with a single bold word).
+IMAGE_ONLY_LEGIBLE_RATIO = 0.15
+IMAGE_ONLY_MIN_LEGIBLE_WORDS = 10
 
 
 def _region_words(page, rect, dpi=OCR_DPI):
@@ -205,18 +210,27 @@ def analyze_page(page, page_number):
     if any(r["role"] != "texte" for r in regions):
         reasons.append("titre, légende ou encart estimé")
     # Sparse scans are usually separators, full-page illustrations, or blanks.
-    # OCR that is both weak and widespread is less useful than the page scan;
-    # keep the metrics here generic and avoid guessing corrected wording.
     sparse_page = len(all_words) < MIN_PAGE_WORDS
-    image_only = (
-        len(all_words) >= IMAGE_ONLY_MIN_WORDS
-        and mean_confidence <= IMAGE_ONLY_MAX_MEAN_CONFIDENCE
-        and low_confidence_ratio >= IMAGE_ONLY_MIN_LOW_CONFIDENCE_RATIO
+    # A page is image-only when the recognised text is mostly noise: fewer than
+    # IMAGE_ONLY_LEGIBLE_RATIO of words are both alphabetically meaningful (≥2
+    # letters) and OCR-confident (≥ LOW_CONFIDENCE).  This catches magazine
+    # covers and full-page photographs where Tesseract produces a trickle of
+    # random characters with mixed confidence — a pattern the old approach
+    # (mean confidence + low-ratio thresholds) missed because a handful of
+    # high-confidence header tokens kept the mean above the cutoff.
+    legible_words = sum(
+        1 for w in all_words
+        if w[6] >= LOW_CONFIDENCE and re.search(r"[a-zA-ZÀ-ÿ]{2,}", w[4])
     )
+    legible_ratio = legible_words / max(1, len(all_words))
+    image_only = legible_ratio < IMAGE_ONLY_LEGIBLE_RATIO or legible_words < IMAGE_ONLY_MIN_LEGIBLE_WORDS
     if sparse_page:
         reasons.append("page presque sans texte reconnu")
     if image_only:
-        reasons.append("OCR trop incertain pour être présenté comme texte")
+        reasons.append(
+            f"OCR trop incertain pour être présenté comme texte "
+            f"({legible_words} mot(s) lisible(s) sur {len(all_words)}, ratio {legible_ratio:.0%})"
+        )
     return {
         "page": page_number,
         "page_width": round(page.rect.width, 1), "page_height": round(page.rect.height, 1),
@@ -224,6 +238,8 @@ def analyze_page(page, page_number):
         "low_confidence_word_count": low_words,
         "low_confidence_ratio": round(low_words / max(1, len(confidence_values)), 3),
         "mean_confidence": round(mean_confidence, 1),
+        "legible_word_count": legible_words,
+        "legible_ratio": round(legible_ratio, 3),
         "sparse_page": sparse_page,
         "image_only": image_only,
         "excluded_lines": 0,

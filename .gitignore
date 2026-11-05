@@ -1,6 +1,6 @@
 # Documents personnels et fichiers générés localement
 /pdf/
-/tests/
+/tests/*.epub
 /venv/
 __pycache__/
 **/__pycache__/
