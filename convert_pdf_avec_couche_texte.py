@@ -88,11 +88,46 @@ def convert_text_pdf(pdf_file, epub_file):
             paragraph_text = None
             paragraph_box = None
             for block in ordered_blocks:
-                cleaned = clean_block(block[4])
-                if not cleaned:
-                    continue
+                raw_text = block[4]
                 box = block[:4]
-                if paragraph_text and same_paragraph_flow(paragraph_box, box):
+
+                # Si la première ligne du bloc est un sous-titre en majuscules
+                # (≥ 75 % de lettres majuscules, longueur raisonnable), on la
+                # sépare du corps : elle devient un <h3> standalone et le reste
+                # du bloc repart comme un nouveau paragraphe.
+                first_line_raw = raw_text.split("\n")[0].replace("\xa0", " ").strip()
+                alpha_chars = [c for c in first_line_raw if c.isalpha()]
+                is_inline_heading = (
+                    first_line_raw
+                    and len(first_line_raw) <= 60
+                    and alpha_chars
+                    and sum(c.isupper() for c in alpha_chars) / len(alpha_chars) >= 0.75
+                    and not first_line_raw.startswith("©")
+                    and "/" not in first_line_raw
+                )
+                if is_inline_heading:
+                    # Émettre le paragraphe en cours avant d'insérer le titre
+                    if paragraph_text:
+                        page_content.append(f"<p>{html.escape(paragraph_text)}</p>")
+                        paragraph_text = None
+                    page_content.append(f"<h3>{html.escape(first_line_raw)}</h3>")
+                    # Retirer la première ligne pour traiter le reste normalement
+                    rest = "\n".join(raw_text.split("\n")[1:])
+                    raw_text = rest
+
+                cleaned = clean_block(raw_text)
+                if not cleaned:
+                    paragraph_box = box
+                    continue
+
+                # Un bloc déjà identifié comme titre inline a rompu le flux ;
+                # les autres blocs se poursuivent si la géométrie le permet.
+                continues = (
+                    paragraph_text
+                    and not is_inline_heading
+                    and same_paragraph_flow(paragraph_box, box)
+                )
+                if continues:
                     paragraph_text = join_wrapped_text(paragraph_text, cleaned)
                 else:
                     if paragraph_text:

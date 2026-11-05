@@ -8,3 +8,4 @@ __pycache__/
 *.parts/
 *.qa/
 *.qa.json
+/tests/*.pdf

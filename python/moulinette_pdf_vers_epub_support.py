@@ -528,7 +528,14 @@ def same_paragraph_flow(previous_box, current_box):
 
 
 def join_wrapped_text(previous, current):
-    if previous.endswith("-") and current[:1].islower():
+    # Un tiret de césure se reconnaît à sa position : il suit immédiatement une
+    # lettre (pas un espace ni un guillemet) et précède une lettre au début du
+    # bloc suivant.  On accepte minuscule ET majuscule après le tiret : en
+    # presse française les noms propres et les débuts de phrase après coupure
+    # de bloc commencent souvent par une majuscule.
+    # Un tiret de liste ou de dialogue (précédé d'un espace ou d'un signe de
+    # ponctuation) n'est jamais en fin de mot — il ne correspond pas au pattern.
+    if re.search(r"[A-Za-zÀ-ÖØ-öø-ÿŒœ]-$", previous) and re.match(r"[A-Za-zÀ-ÖØ-öø-ÿŒœ]", current):
         return previous[:-1] + current
     return previous + " " + current
 
